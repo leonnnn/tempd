@@ -41,7 +41,7 @@ uint8_t onewire_control_probe(int fd, uint8_t signal)
     uint8_t response = 0x00;
     read(fd, &response, 1);
     //printf("control probe sig %02x resp %02x\n", signal, response);
-    set_baudrate(fd, B57600);
+    set_baudrate(fd, B115200);
     sleep(1);
     return response;
 }
@@ -245,7 +245,7 @@ int onewire_findnext(int fd, onewire_addr_t addr)
 }
 
 uint8_t onewire_address_device(
-    int fd, 
+    int fd,
     const onewire_addr_t addr)
 {
     uint8_t status = onewire_reset(fd);
@@ -282,8 +282,16 @@ uint8_t onewire_ds18b20_read_temperature(
     }
     onewire_write_byte(fd, 0xBE);
     uint16_t temperature = 0x00;
-    temperature |= onewire_read_byte(fd);
-    temperature |= (onewire_read_byte(fd) << 8);
+    uint8_t tmp = onewire_read_byte(fd);
+    temperature |= tmp;
+    fprintf(stderr, "%02x", tmp);
+    tmp = onewire_read_byte(fd);
+    temperature |= ((uint16_t)tmp << 8);
+    fprintf(stderr, "%02x", tmp);
+    for (int i = 0; i < 7; ++i) {
+        fprintf(stderr, "%02x", onewire_read_byte(fd));
+    }
+    fprintf(stderr, "\n");
     *Tout = (int16_t)temperature;
     return ONEWIRE_PRESENCE;
 }
@@ -314,7 +322,7 @@ int main(int argc, char **argv)
 
         while (onewire_findnext(fd, addr) == ONEWIRE_PRESENCE) {
             onewire_ds18b20_invoke_conversion(fd, addr);
-            sleep(5);
+            sleep(4);
             int16_t raw;
             uint8_t status = onewire_ds18b20_read_temperature(fd, addr, &raw);
             if (status != ONEWIRE_PRESENCE) {
@@ -329,7 +337,7 @@ int main(int argc, char **argv)
 
             printf(" %f\n", (float)raw/16.0);
             fflush(stdout);
-            sleep(5);
+            sleep(4);
         }
     }
 }

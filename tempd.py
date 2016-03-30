@@ -5,17 +5,28 @@ import subprocess
 import sys
 import statistics
 
+import numpy as np
+
+def linear_lubricant(vals):
+    weights = range(1, len(vals)+1)
+    norm = sum(weights)
+    weights = [i/norm for i in weights]
+    weighted = [val*weight for val, weight in zip(vals, weights)]
+    return statistics.mean(weighted)*len(vals)
+
 class Tempd:
     def __init__(self, loop, sensors):
-        self.data = {}
+        self.raw_history = {}
         self.loop = loop
         self.sensors = sensors
+        self.median_history_size = 12
+        self.median_history = dict()
+        self.median_window_size = 3
+        self.diff_history = dict()
+        self.stats = dict()
 
-        self.stats = None
-        self.reset_stats()
-
-    def reset_stats(self):
-        self.stats = {
+    def reset_stats(self, sensor):
+        self.stats[sensor] = {
             "filtered": 0,
             "accepted": 0
         }
@@ -24,7 +35,6 @@ class Tempd:
         self.child = await asyncio.create_subprocess_exec(
             "/home/leon/test",
             stdout=subprocess.PIPE,
-            stderr=subprocess.DEVNULL,
             loop=self.loop
         )
 
@@ -36,40 +46,81 @@ class Tempd:
             loop=self.loop,
         )
 
+    def sensor_name(self, sensor):
+        if sensor in self.sensors:
+            return self.sensors[sensor]
+        else:
+            return sensor
+
+    def get_median(self, sensor):
+        return statistics.median(self.raw_history[sensor])
+
+    def write_median_history(self, sensor, median):
+        if sensor not in self.median_history:
+            self.median_history[sensor] = []
+
+        self.median_history[sensor].append(median)
+
+        if len(self.median_history[sensor]) > self.median_history_size:
+            self.median_history[sensor].pop(0)
+
+    def get_cur_val(self, sensor):
+        if sensor not in self.median_history:
+            self.median_history[sensor] = []
+
+        window = self.median_history[sensor][-self.median_window_size:]
+        return linear_lubricant(window)
+
+    def get_cur_flow(self, sensor):
+        pad = self.median_history_size - len(self.median_history[sensor]) - 1
+        diff = [0] * pad + list(np.diff(self.median_history[sensor]))
+
+        return linear_lubricant(diff)/5*60
+
+    def get_cur_ratio(self, sensor):
+        return 100 * self.stats[sensor]["filtered"] / (
+            self.stats[sensor]["filtered"] +
+            self.stats[sensor]["accepted"]
+        )
+
     def handle_connect(self, client_reader, client_writer):
         print("incoming connection… ", end="", file=sys.stderr, flush=True)
-        for sensor in self.data:
-            if sensor in self.sensors:
-                sensor_name = self.sensors[sensor]
-            else:
-                sensor_name = sensor
+        for sensor in self.raw_history:
+            sensor_name = self.sensor_name(sensor)
 
             try:
-                val = statistics.median(self.data[sensor])
+                median = self.get_median(sensor)
+                self.write_median_history(sensor, median)
+                val = self.get_cur_val(sensor)
             except statistics.StatisticsError:
                 val = "NaN"
 
-            msg = "multigraph sensors\n"
-            msg += "{}.value {}\n".format(sensor_name, val)
+            try:
+                flow = self.get_cur_flow(sensor)
+            except statistics.StatisticsError:
+                flow = "NaN"
 
             try:
-                ratio = self.stats["filtered"]/(
-                    self.stats["filtered"] + self.stats["accepted"]
-                )*100
-            except ZeroDivisionError:
-                ratio = "NaN"
+                ratio = self.get_cur_ratio(sensor)
+            except (KeyError, ZeroDivisionError):
+                ration = "NaN"
 
+            msg = "multigraph sensors\n"
+            msg += "{}.value {}\n".format(sensor_name, val)
+            msg += "multigraph sensors_flow\n"
+            msg += "{}-flow.value {}\n".format(sensor_name, flow)
             msg += "multigraph sensors_stats\n"
             msg += "{}-ratio.value {}\n".format(sensor_name, ratio)
 
             print("sending {}".format(msg), file=sys.stderr, flush=True)
             client_writer.write(msg.encode("utf-8"))
-            client_writer.close()
 
-            self.data[sensor] = []
-            self.reset_stats()
+            self.raw_history[sensor] = []
+            self.reset_stats(sensor)
 
-        print(self.data, file=sys.stderr, flush=True)
+        client_writer.close()
+        print("raw_history:", self.raw_history, file=sys.stderr, flush=True)
+        print("median_history:", self.median_history, file=sys.stderr, flush=True)
 
     async def run(self, loop):
         await asyncio.wait([self.start_child(), self.start_server()])
@@ -83,22 +134,25 @@ class Tempd:
             addr, val = line.split(" ")
             val = float(val)
 
+            if addr not in self.stats:
+                self.reset_stats(addr)
+
             if val < 0 or val > 80:
                 print(
                     "skipping bad value {}".format(val),
                     file=sys.stderr,
                     flush=True
                 )
-                self.stats["filtered"] += 1
+                self.stats[addr]["filtered"] += 1
                 continue
 
-            self.stats["accepted"] += 1
+            self.stats[addr]["accepted"] += 1
 
-            if addr not in self.data:
-                self.data[addr] = []
+            if addr not in self.raw_history:
+                self.raw_history[addr] = []
 
-            self.data[addr].append(val)
-            print(self.data, file=sys.stderr, flush=True)
+            self.raw_history[addr].append(val)
+            print(self.raw_history, file=sys.stderr, flush=True)
 
 
 
