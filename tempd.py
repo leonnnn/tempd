@@ -4,6 +4,8 @@ import asyncio
 import subprocess
 import sys
 import statistics
+import math
+import functools
 
 import numpy as np
 
@@ -57,7 +59,7 @@ class Tempd:
         median = statistics.median(self.raw_history[sensor])
         δ = 2 * self.sensor_resolution
         vals = list(filter(
-            lambda x: median-δ <= x <= median+δ,
+            functools.partial(math.isclose, median, abs_tol=δ),
             self.raw_history[sensor]
         ))
 
