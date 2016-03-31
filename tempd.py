@@ -19,10 +19,9 @@ class Tempd:
         self.raw_history = {}
         self.loop = loop
         self.sensors = sensors
-        self.median_history_size = 12
-        self.median_history = dict()
-        self.median_window_size = 3
-        self.diff_history = dict()
+        self.output_history_size = 12
+        self.output_history = dict()
+        self.output_window_size = 3
         self.stats = dict()
 
     def reset_stats(self, sensor):
@@ -52,28 +51,25 @@ class Tempd:
         else:
             return sensor
 
-    def get_median(self, sensor):
-        return statistics.median(self.raw_history[sensor])
+    def get_output(self, sensor):
+        if len(self.raw_history[sensor]) < 5:
+            return statistics.median(self.raw_history[sensor])
+        else:  # normal case
+            middle = sorted(self.raw_history[sensor])[2:-2]
+            return statistics.mean(middle)
 
-    def write_median_history(self, sensor, median):
-        if sensor not in self.median_history:
-            self.median_history[sensor] = []
+    def write_output_history(self, sensor, median):
+        if sensor not in self.output_history:
+            self.output_history[sensor] = []
 
-        self.median_history[sensor].append(median)
+        self.output_history[sensor].append(median)
 
-        if len(self.median_history[sensor]) > self.median_history_size:
-            self.median_history[sensor].pop(0)
-
-    def get_cur_val(self, sensor):
-        if sensor not in self.median_history:
-            self.median_history[sensor] = []
-
-        window = self.median_history[sensor][-self.median_window_size:]
-        return linear_lubricant(window)
+        if len(self.output_history[sensor]) > self.output_history_size:
+            self.output_history[sensor].pop(0)
 
     def get_cur_flow(self, sensor):
-        pad = self.median_history_size - len(self.median_history[sensor]) - 1
-        diff = [0] * pad + list(np.diff(self.median_history[sensor]))
+        pad = self.output_history_size - len(self.output_history[sensor]) - 1
+        diff = [0] * pad + list(np.diff(self.output_history[sensor]))
 
         return linear_lubricant(diff)/5*60
 
@@ -89,15 +85,14 @@ class Tempd:
             sensor_name = self.sensor_name(sensor)
 
             try:
-                median = self.get_median(sensor)
-                self.write_median_history(sensor, median)
-                val = self.get_cur_val(sensor)
+                out = self.get_output(sensor)
+                self.write_output_history(sensor, out)
             except statistics.StatisticsError:
-                val = "NaN"
+                out = "NaN"
 
             try:
                 flow = self.get_cur_flow(sensor)
-            except statistics.StatisticsError:
+            except (KeyError, statistics.StatisticsError):
                 flow = "NaN"
 
             try:
@@ -106,7 +101,7 @@ class Tempd:
                 ration = "NaN"
 
             msg = "multigraph sensors\n"
-            msg += "{}.value {}\n".format(sensor_name, val)
+            msg += "{}.value {}\n".format(sensor_name, out)
             msg += "multigraph sensors_flow\n"
             msg += "{}-flow.value {}\n".format(sensor_name, flow)
             msg += "multigraph sensors_stats\n"
@@ -120,7 +115,7 @@ class Tempd:
 
         client_writer.close()
         print("raw_history:", self.raw_history, file=sys.stderr, flush=True)
-        print("median_history:", self.median_history, file=sys.stderr, flush=True)
+        print("output_history:", self.output_history, file=sys.stderr, flush=True)
 
     async def run(self, loop):
         await asyncio.wait([self.start_child(), self.start_server()])
