@@ -24,6 +24,8 @@ class Tempd:
         self.output_window_size = 3
         self.stats = dict()
 
+        self.sensor_resolution = 1/16
+
     def reset_stats(self, sensor):
         self.stats[sensor] = {
             "filtered": 0,
@@ -52,11 +54,17 @@ class Tempd:
             return sensor
 
     def get_output(self, sensor):
-        if len(self.raw_history[sensor]) < 5:
-            return statistics.median(self.raw_history[sensor])
-        else:  # normal case
-            middle = sorted(self.raw_history[sensor])[2:-2]
-            return statistics.mean(middle)
+        median = statistics.median(self.raw_history[sensor])
+        δ = 2 * self.sensor_resolution
+        vals = list(filter(
+            lambda x: median-δ <= x <= median+δ,
+            self.raw_history[sensor]
+        ))
+
+        print("considering for output:", vals, file=sys.stderr, flush=True)
+
+        return statistics.mean(vals)
+
 
     def write_output_history(self, sensor, median):
         if sensor not in self.output_history:
