@@ -108,7 +108,7 @@ class Tempd:
             try:
                 ratio = self.get_cur_ratio(sensor)
             except (KeyError, ZeroDivisionError):
-                ration = "NaN"
+                ratio = "NaN"
 
             msg = "multigraph sensors\n"
             msg += "{}.value {}\n".format(sensor_name, out)
