@@ -276,10 +276,15 @@ uint8_t onewire_ds18b20_read_temperature(
     const onewire_addr_t device,
     int16_t *Tout)
 {
-    uint8_t status = onewire_address_device(fd, device);
+    //uint8_t status = onewire_address_device(fd, device);
+    //if (status != ONEWIRE_PRESENCE) {
+    //    return status;
+    //}
+    uint8_t status = onewire_reset(fd);
     if (status != ONEWIRE_PRESENCE) {
         return status;
     }
+    onewire_write_byte(fd, 0xCC);
     onewire_write_byte(fd, 0xBE);
     uint16_t temperature = 0x00;
     uint8_t tmp = onewire_read_byte(fd);
