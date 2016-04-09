@@ -53,7 +53,7 @@ uint8_t onewire_probe(int fd, uint8_t signal)
     write(fd, &signal, 1);
     uint8_t response;
     read(fd, &response, 1);
-    //printf("probe sig %02x resp %02x\n", signal, response);
+    //fprintf(stderr, "probe sig %02x resp %02x\n", signal, response);
     return response;
 }
 
