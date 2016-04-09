@@ -9,12 +9,14 @@ import functools
 
 import numpy as np
 
+
 def linear_lubricant(vals):
     weights = range(1, len(vals)+1)
     norm = sum(weights)
     weights = [i/norm for i in weights]
     weighted = [val*weight for val, weight in zip(vals, weights)]
     return statistics.mean(weighted)*len(vals)
+
 
 class Tempd:
     def __init__(self, loop, sensors):
@@ -66,7 +68,6 @@ class Tempd:
         print("considering for output:", vals, file=sys.stderr, flush=True)
 
         return statistics.mean(vals)
-
 
     def write_output_history(self, sensor, median):
         if sensor not in self.output_history:
@@ -158,7 +159,6 @@ class Tempd:
 
             self.raw_history[addr].append(val)
             print(self.raw_history, file=sys.stderr, flush=True)
-
 
 
 if __name__ == "__main__":
