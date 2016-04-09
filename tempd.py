@@ -19,10 +19,12 @@ def linear_lubricant(vals):
 
 
 class Tempd:
-    def __init__(self, loop, sensors):
+    def __init__(self, loop, sensors, default_sensor):
         self.raw_history = {}
         self.loop = loop
         self.sensors = sensors
+        self.default_sensor = default_sensor
+
         self.output_history_size = 12
         self.output_history = dict()
         self.output_window_size = 3
@@ -55,7 +57,7 @@ class Tempd:
         if sensor in self.sensors:
             return self.sensors[sensor]
         else:
-            return sensor
+            return self.default_sensor
 
     def get_output(self, sensor):
         median = statistics.median(self.raw_history[sensor])
@@ -140,8 +142,10 @@ class Tempd:
             addr, val = line.split(" ")
             val = float(val)
 
-            if addr not in self.stats:
-                self.reset_stats(addr)
+            sensor = self.sensor_name(addr)
+
+            if sensor not in self.stats:
+                self.reset_stats(sensor)
 
             if val < 0 or val > 80:
                 print(
@@ -149,15 +153,15 @@ class Tempd:
                     file=sys.stderr,
                     flush=True
                 )
-                self.stats[addr]["filtered"] += 1
+                self.stats[sensor]["filtered"] += 1
                 continue
 
-            self.stats[addr]["accepted"] += 1
+            self.stats[sensor]["accepted"] += 1
 
-            if addr not in self.raw_history:
-                self.raw_history[addr] = []
+            if sensor not in self.raw_history:
+                self.raw_history[sensor] = []
 
-            self.raw_history[addr].append(val)
+            self.raw_history[sensor].append(val)
             print(self.raw_history, file=sys.stderr, flush=True)
 
 
@@ -167,5 +171,5 @@ if __name__ == "__main__":
         "285edd52040000d0": "wohnzimmer"
     }
     loop = asyncio.get_event_loop()
-    tempd = Tempd(loop, sensors)
+    tempd = Tempd(loop, sensors, default_sensor="wohnzimmer")
     loop.run_until_complete(tempd.run(loop))
