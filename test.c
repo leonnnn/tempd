@@ -246,6 +246,13 @@ int onewire_findnext(int fd, onewire_addr_t addr)
 
     }
 
+    crc8_state_t state;
+    crc8_init(&state, 0x31);
+    if (crc8_feed(&state, (const char *)&addr[0], UART_1W_ADDR_LEN) != 0) {
+        fprintf(stderr, "crc error while finding device\n");
+        return ONEWIRE_CRC_ERROR;
+    }
+
     return ONEWIRE_PRESENCE;
 }
 
@@ -313,7 +320,7 @@ uint8_t onewire_ds18b20_read_temperature(
 {
     onewire_scratchpad_t sp;
     uint8_t status = onewire_read_scratchpad(fd, device, sp);
-    if (status != ONEWIRE_PRESENCE && status != ONEWIRE_CRC_ERROR) {
+    if (status != ONEWIRE_PRESENCE) {
         return status;
     }
 
@@ -322,6 +329,24 @@ uint8_t onewire_ds18b20_read_temperature(
     temperature |= ((uint16_t)sp[1] << 8);
     *Tout = (int16_t)temperature;
     return ONEWIRE_PRESENCE;
+}
+
+uint8_t onewire_ds18b20_read_temperature_retry(
+    int fd,
+    const onewire_addr_t device,
+    int16_t *Tout,
+    unsigned int max_retries)
+{
+    uint8_t status = onewire_ds18b20_read_temperature(fd, device, Tout);
+    uint8_t nattempt = 0;
+    while (status == ONEWIRE_CRC_ERROR && nattempt < max_retries) {
+        nattempt++;
+        fprintf(stderr, "crc error while reading temperature\n");
+        usleep(100000);
+        fprintf(stderr, "re-trying temperature read\n");
+        status = onewire_ds18b20_read_temperature(fd, device, Tout);
+    }
+    return status;
 }
 
 int main(int argc, char **argv)
@@ -351,16 +376,19 @@ int main(int argc, char **argv)
         while (onewire_findnext(fd, addr) == ONEWIRE_PRESENCE) {
             onewire_ds18b20_invoke_conversion(fd, addr);
             sleep(4);
-            int16_t raw;
-            uint8_t status = onewire_ds18b20_read_temperature(fd, addr, &raw);
-            if (status != ONEWIRE_PRESENCE && status != ONEWIRE_CRC_ERROR) {
-                fprintf(stderr, "fail\n");
-                sleep(1);
-                continue;
-            }
 
             for (unsigned i = 0; i < UART_1W_ADDR_LEN; ++i) {
                 printf("%02x", addr[i]);
+            }
+
+            int16_t raw;
+            uint8_t status = onewire_ds18b20_read_temperature_retry(fd, addr, &raw, 2);
+            if (status != ONEWIRE_PRESENCE) {
+                printf(" read failed (reason=0x%02x)\n",
+                       status);
+                fprintf(stderr, "read failed\n");
+                sleep(1);
+                continue;
             }
 
             printf(" %f\n", (float)raw/16.0);
