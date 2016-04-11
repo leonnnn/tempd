@@ -6,6 +6,7 @@ import sys
 import statistics
 import math
 import functools
+import re
 
 import numpy as np
 
@@ -16,6 +17,9 @@ def linear_lubricant(vals):
     weights = [i/norm for i in weights]
     weighted = [val*weight for val, weight in zip(vals, weights)]
     return statistics.mean(weighted)*len(vals)
+
+
+READ_ERROR_RE = re.compile(r"read failed \(reason=0x([0-9a-fA-F]+)\)")
 
 
 class Tempd:
@@ -139,21 +143,23 @@ class Tempd:
                 return
 
             line = line.decode().strip()
-            addr, val = line.split(" ")
-            val = float(val)
+            addr, msg = line.split(" ", 1)
 
             sensor = self.sensor_name(addr)
 
             if sensor not in self.stats:
                 self.reset_stats(sensor)
 
-            if val < 0 or val > 80:
-                print(
-                    "skipping bad value {}".format(val),
-                    file=sys.stderr,
-                    flush=True
-                )
-                self.stats[sensor]["filtered"] += 1
+            try:
+                val = float(msg)
+            except ValueError:
+                # this is an error from test.c
+                print(msg)
+                m = READ_ERROR_RE.match(msg)
+                if m:
+                    reason = int(m.group(1), 16)
+                    if reason == 0x04:  # crc error
+                        self.stats[sensor]["filtered"] += 1
                 continue
 
             self.stats[sensor]["accepted"] += 1
