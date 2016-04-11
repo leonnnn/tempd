@@ -1,4 +1,4 @@
-CFLAGS=-m32 -Wall -Werror
+CFLAGS=-m32 -std=c11 -Wall -Werror
 HEADERS=$(wildcard *.h)
 
 test: crc8.o test.o
