@@ -6,18 +6,23 @@
 #include <string.h>
 #include <stdint.h>
 
+#include "crc8.h"
+
 
 static const char *port = "/dev/ttyUSB0";
 
 #define UART_1W_ADDR_LEN (8)
+#define UART_1W_SCRATCHPAD_LEN (9)
 
 typedef uint8_t onewire_addr_t[UART_1W_ADDR_LEN];
+typedef uint8_t onewire_scratchpad_t[UART_1W_SCRATCHPAD_LEN];
 
 enum ONEWIRE_STATUS {
     ONEWIRE_PRESENCE = 0,
     ONEWIRE_NCONN = 1,
     ONEWIRE_ERROR = 2,
     ONEWIRE_EMPTY = 3,
+    ONEWIRE_CRC_ERROR = 4,
 };
 
 
@@ -271,32 +276,50 @@ void onewire_ds18b20_invoke_conversion(
     usleep(800);
 }
 
+uint8_t onewire_read_scratchpad(
+    int fd,
+    const onewire_addr_t device,
+    onewire_scratchpad_t sp)
+{
+    uint8_t status = onewire_address_device(fd, device);
+    if (status != ONEWIRE_PRESENCE) {
+        return status;
+    }
+
+    onewire_write_byte(fd, 0xBE);
+
+    crc8_state_t state;
+    crc8_init(&state, 0x31);
+    fprintf(stderr, "reading scratchpad: ");
+    for (unsigned int i = 0; i < UART_1W_SCRATCHPAD_LEN; ++i) {
+        uint8_t byte = onewire_read_byte(fd);
+        fprintf(stderr, "%02x", byte);
+        sp[i] = byte;
+        crc8_feed(&state, (const char*)&byte, 1);
+    }
+    if (state.crc != 0) {
+        fprintf(stderr, " -- crc fail\n");
+        return ONEWIRE_CRC_ERROR;
+    }
+    fprintf(stderr, " -- crc ok\n");
+
+    return ONEWIRE_PRESENCE;
+}
+
 uint8_t onewire_ds18b20_read_temperature(
     int fd,
     const onewire_addr_t device,
     int16_t *Tout)
 {
-    //uint8_t status = onewire_address_device(fd, device);
-    //if (status != ONEWIRE_PRESENCE) {
-    //    return status;
-    //}
-    uint8_t status = onewire_reset(fd);
-    if (status != ONEWIRE_PRESENCE) {
+    onewire_scratchpad_t sp;
+    uint8_t status = onewire_read_scratchpad(fd, device, sp);
+    if (status != ONEWIRE_PRESENCE && status != ONEWIRE_CRC_ERROR) {
         return status;
     }
-    onewire_write_byte(fd, 0xCC);
-    onewire_write_byte(fd, 0xBE);
-    uint16_t temperature = 0x00;
-    uint8_t tmp = onewire_read_byte(fd);
-    temperature |= tmp;
-    fprintf(stderr, "%02x", tmp);
-    tmp = onewire_read_byte(fd);
-    temperature |= ((uint16_t)tmp << 8);
-    fprintf(stderr, "%02x", tmp);
-    for (int i = 0; i < 7; ++i) {
-        fprintf(stderr, "%02x", onewire_read_byte(fd));
-    }
-    fprintf(stderr, "\n");
+
+    uint16_t temperature = 0;
+    temperature |= sp[0];
+    temperature |= ((uint16_t)sp[1] << 8);
     *Tout = (int16_t)temperature;
     return ONEWIRE_PRESENCE;
 }
@@ -330,7 +353,7 @@ int main(int argc, char **argv)
             sleep(4);
             int16_t raw;
             uint8_t status = onewire_ds18b20_read_temperature(fd, addr, &raw);
-            if (status != ONEWIRE_PRESENCE) {
+            if (status != ONEWIRE_PRESENCE && status != ONEWIRE_CRC_ERROR) {
                 fprintf(stderr, "fail\n");
                 sleep(1);
                 continue;
