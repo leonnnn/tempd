@@ -369,16 +369,19 @@ int main(int argc, char **argv)
         while (onewire_findnext(fd, addr) == ONEWIRE_PRESENCE) {
             onewire_ds18b20_invoke_conversion(fd, addr);
             sleep(4);
-            int16_t raw;
-            uint8_t status = onewire_ds18b20_read_temperature_retry(fd, addr, &raw, 2);
-            if (status != ONEWIRE_PRESENCE) {
-                fprintf(stderr, "read failed\n");
-                sleep(1);
-                continue;
-            }
 
             for (unsigned i = 0; i < UART_1W_ADDR_LEN; ++i) {
                 printf("%02x", addr[i]);
+            }
+
+            int16_t raw;
+            uint8_t status = onewire_ds18b20_read_temperature_retry(fd, addr, &raw, 2);
+            if (status != ONEWIRE_PRESENCE) {
+                printf(" read failed (reason=0x%02x)\n",
+                       status);
+                fprintf(stderr, "read failed\n");
+                sleep(1);
+                continue;
             }
 
             printf(" %f\n", (float)raw/16.0);
