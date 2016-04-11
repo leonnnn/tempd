@@ -26,6 +26,14 @@ enum ONEWIRE_STATUS {
 };
 
 
+static void print_addr(FILE *to, const onewire_addr_t addr)
+{
+    for (unsigned i = 0; i < UART_1W_ADDR_LEN; ++i) {
+        fprintf(to, "%02x", addr[i]);
+    }
+}
+
+
 void set_baudrate(int fd, speed_t speed)
 {
     struct termios port_settings;
@@ -377,16 +385,15 @@ int main(int argc, char **argv)
             onewire_ds18b20_invoke_conversion(fd, addr);
             sleep(4);
 
-            for (unsigned i = 0; i < UART_1W_ADDR_LEN; ++i) {
-                printf("%02x", addr[i]);
-            }
+            print_addr(stdout, addr);
 
             int16_t raw;
             uint8_t status = onewire_ds18b20_read_temperature_retry(fd, addr, &raw, 2);
             if (status != ONEWIRE_PRESENCE) {
                 printf(" read failed (reason=0x%02x)\n",
                        status);
-                fprintf(stderr, "read failed (reason=0x%02x)\n");
+                print_addr(stderr, addr);
+                fprintf(stderr, ": read failed (reason=0x%02x)\n", status);
                 sleep(1);
                 continue;
             }
