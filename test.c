@@ -313,7 +313,7 @@ uint8_t onewire_ds18b20_read_temperature(
 {
     onewire_scratchpad_t sp;
     uint8_t status = onewire_read_scratchpad(fd, device, sp);
-    if (status != ONEWIRE_PRESENCE && status != ONEWIRE_CRC_ERROR) {
+    if (status != ONEWIRE_PRESENCE) {
         return status;
     }
 
@@ -322,6 +322,24 @@ uint8_t onewire_ds18b20_read_temperature(
     temperature |= ((uint16_t)sp[1] << 8);
     *Tout = (int16_t)temperature;
     return ONEWIRE_PRESENCE;
+}
+
+uint8_t onewire_ds18b20_read_temperature_retry(
+    int fd,
+    const onewire_addr_t device,
+    int16_t *Tout,
+    unsigned int max_retries)
+{
+    uint8_t status = onewire_ds18b20_read_temperature(fd, device, Tout);
+    uint8_t nattempt = 0;
+    while (status == ONEWIRE_CRC_ERROR && nattempt < max_retries) {
+        nattempt++;
+        fprintf(stderr, "crc error while reading temperature\n");
+        usleep(100000);
+        fprintf(stderr, "re-trying temperature read\n");
+        status = onewire_ds18b20_read_temperature(fd, device, Tout);
+    }
+    return status;
 }
 
 int main(int argc, char **argv)
@@ -352,9 +370,9 @@ int main(int argc, char **argv)
             onewire_ds18b20_invoke_conversion(fd, addr);
             sleep(4);
             int16_t raw;
-            uint8_t status = onewire_ds18b20_read_temperature(fd, addr, &raw);
-            if (status != ONEWIRE_PRESENCE && status != ONEWIRE_CRC_ERROR) {
-                fprintf(stderr, "fail\n");
+            uint8_t status = onewire_ds18b20_read_temperature_retry(fd, addr, &raw, 2);
+            if (status != ONEWIRE_PRESENCE) {
+                fprintf(stderr, "read failed\n");
                 sleep(1);
                 continue;
             }
