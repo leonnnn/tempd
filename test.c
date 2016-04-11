@@ -246,6 +246,13 @@ int onewire_findnext(int fd, onewire_addr_t addr)
 
     }
 
+    crc8_state_t state;
+    crc8_init(&state, 0x31);
+    if (crc8_feed(&state, (const char *)&addr[0], UART_1W_ADDR_LEN) != 0) {
+        fprintf(stderr, "crc error while finding device\n");
+        return ONEWIRE_CRC_ERROR;
+    }
+
     return ONEWIRE_PRESENCE;
 }
 
