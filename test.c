@@ -386,7 +386,7 @@ int main(int argc, char **argv)
             if (status != ONEWIRE_PRESENCE) {
                 printf(" read failed (reason=0x%02x)\n",
                        status);
-                fprintf(stderr, "read failed\n");
+                fprintf(stderr, "read failed (reason=0x%02x)\n");
                 sleep(1);
                 continue;
             }
