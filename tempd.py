@@ -162,6 +162,13 @@ class Tempd:
                         self.stats[sensor]["filtered"] += 1
                 continue
 
+            if val > 84:
+                print("Skipping bad value:", val,
+                      file=sys.stderr, flush=True)
+                self.stats[sensor]["filtered"] += 1
+                continue
+
+
             self.stats[sensor]["accepted"] += 1
 
             if sensor not in self.raw_history:
