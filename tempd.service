@@ -1,0 +1,11 @@
+[Unit]
+Description=tempd
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /home/leon/tempd/tempd.py
+
+[Install]
+WantedBy=multi-user.target
+Alias=tempd.service
