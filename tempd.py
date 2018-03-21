@@ -44,7 +44,7 @@ class Tempd:
 
     async def start_child(self):
         self.child = await asyncio.create_subprocess_exec(
-            "/home/leon/test",
+            "/home/leon/tempd/test",
             stdout=subprocess.PIPE,
             loop=self.loop
         )
