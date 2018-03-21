@@ -1,0 +1,26 @@
+#!/usr/bin/python3
+
+import sys
+import subprocess
+
+if len(sys.argv) > 1 and sys.argv[1] == "config":
+  print('multigraph sensors')
+  sys.stdout.buffer.write('graph_vlabel °C\n'.encode('latin-1'))
+  print('graph_category thermal')
+  print('graph_title Room Temperature')
+  print('wohnzimmer.label Wohnzimmer')
+  print('wohnzimmer.critical 50')
+
+  print('multigraph sensors_flow')
+  sys.stdout.buffer.write('graph_vlabel °C/h\n'.encode('latin-1'))
+  print('graph_title Room Thermal Flow')
+  print('graph_category thermal')
+  print('wohnzimmer-flow.label Wohnzimmer')
+
+  print('multigraph sensors_stats')
+  print('graph_title Temperature Sensor Readout Error Rate')
+  print('graph_category thermal')
+  print('wohnzimmer-ratio.label Wohnzimmer')
+  sys.exit()
+
+print(subprocess.check_output(["/bin/nc", "-w", "1", "127.0.0.1", "31338"]).decode())
