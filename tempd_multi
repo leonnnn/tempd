@@ -33,7 +33,7 @@ if len(sys.argv) > 1 and sys.argv[1] == "config":
   sys.stdout.buffer.write('graph_vlabel °C/h\n'.encode('latin-1'))
   print('graph_title Heizung Thermal Flow')
   print('graph_category thermal')
-  print('wohnzimmer-heizungflow.label Heizung Wohnzimmer')
+  print('wohnzimmer-heizung-flow.label Heizung Wohnzimmer')
 
   print('multigraph sensors_wohnzimmer-heizung_stats')
   print('graph_title Temperature Sensor Readout Error Rate')
@@ -54,7 +54,7 @@ if len(sys.argv) > 1 and sys.argv[1] == "config":
   print('graph_title Room Thermal Flow')
   print('graph_category thermal')
   print('wohnzimmer-flow.label Wohnzimmer')
-  print('wohnzimmer-heizungflow.label Heizung Wohnzimmer')
+  print('wohnzimmer-heizung-flow.label Heizung Wohnzimmer')
   sys.exit()
 
 print(subprocess.check_output(["/bin/nc", "-w", "1", "127.0.0.1", "31338"]).decode())
