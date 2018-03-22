@@ -140,7 +140,7 @@ class Tempd:
         msg = "multigraph sensors\n"
         for sensor_name in output:
             msg += "{}.value {}\n".format(sensor_name, output[sensor_name])
-        msg += "multigraph sensors_flow\n".format
+        msg += "multigraph sensors_flow\n"
         for sensor_name in output_flow:
             msg += "{}-flow.value {}\n".format(sensor_name, output_flow[sensor_name])
 
