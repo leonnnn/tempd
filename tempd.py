@@ -30,7 +30,7 @@ class Tempd:
         self.default_sensor = default_sensor
 
         #self.output_history_size = 12
-        self.output_history_size = 1 # flow smoothing is disabled
+        self.output_history_size = 2 # flow smoothing is disabled
         self.output_history = dict()
         self.output_window_size = 3
         self.stats = dict()
