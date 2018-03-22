@@ -384,7 +384,7 @@ int main(int argc, char **argv)
 
         while (onewire_findnext(fd, addr) == ONEWIRE_PRESENCE) {
             onewire_ds18b20_invoke_conversion(fd, addr);
-            sleep(4);
+            sleep(1);
 
             print_addr(stdout, addr);
 
@@ -401,7 +401,7 @@ int main(int argc, char **argv)
 
             printf(" %f\n", (float)raw/16.0);
             fflush(stdout);
-            sleep(4);
+            sleep(1);
         }
     }
 }
