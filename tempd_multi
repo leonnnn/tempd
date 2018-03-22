@@ -4,13 +4,14 @@ import sys
 import subprocess
 
 if len(sys.argv) > 1 and sys.argv[1] == "config":
-  graph_args = "-A -Y -X 0 -L 3"
+  graph_args = "-A -Y"
 
   print('multigraph sensors_wohnzimmer')
   sys.stdout.buffer.write('graph_vlabel °C\n'.encode('latin-1'))
   print('graph_category thermal')
   print('graph_title Room Temperature Wohnzimmer')
   print('graph_args {}'.format(graph_args))
+  print('graph_scale no')
   print('wohnzimmer.label Wohnzimmer')
   print('wohnzimmer.critical 50')
 
@@ -19,12 +20,14 @@ if len(sys.argv) > 1 and sys.argv[1] == "config":
   print('graph_title Room Thermal Flow')
   print('graph_category thermal')
   print('graph_args {}'.format(graph_args))
+  print('graph_scale no')
   print('wohnzimmer-flow.label Wohnzimmer')
 
   print('multigraph sensors_wohnzimmer_stats')
   print('graph_title Temperature Sensor Readout Error Rate')
   print('graph_category thermal')
   print('graph_args {}'.format(graph_args))
+  print('graph_scale no')
   print('wohnzimmer-ratio.label Wohnzimmer')
 
   print('multigraph sensors_wohnzimmer_heizung')
@@ -32,6 +35,7 @@ if len(sys.argv) > 1 and sys.argv[1] == "config":
   print('graph_category thermal')
   print('graph_title Temperatur Heizung')
   print('graph_args {}'.format(graph_args))
+  print('graph_scale no')
   print('wohnzimmer-heizung.label Heizung Wohnzimmer')
   print('wohnzimmer-heizung.critical 100')
 
@@ -40,12 +44,14 @@ if len(sys.argv) > 1 and sys.argv[1] == "config":
   print('graph_title Heizung Thermal Flow')
   print('graph_category thermal')
   print('graph_args {}'.format(graph_args))
+  print('graph_scale no')
   print('wohnzimmer-heizung-flow.label Heizung Wohnzimmer')
 
   print('multigraph sensors_wohnzimmer_heizung_stats')
   print('graph_title Temperature Sensor Readout Error Rate')
   print('graph_category thermal')
   print('graph_args {}'.format(graph_args))
+  print('graph_scale no')
   print('wohnzimmer-heizung-ratio.label Heizung Wohnzimmer')
 
   print('multigraph sensors')
@@ -53,6 +59,7 @@ if len(sys.argv) > 1 and sys.argv[1] == "config":
   print('graph_category thermal')
   print('graph_title Room Temperature')
   print('graph_args {}'.format(graph_args))
+  print('graph_scale no')
   print('wohnzimmer.label Wohnzimmer')
   print('wohnzimmer.critical 50')
   print('wohnzimmer-heizung.label Heizung Wohnzimmer')
@@ -63,6 +70,7 @@ if len(sys.argv) > 1 and sys.argv[1] == "config":
   print('graph_title Room Thermal Flow')
   print('graph_category thermal')
   print('graph_args {}'.format(graph_args))
+  print('graph_scale no')
   print('wohnzimmer-flow.label Wohnzimmer')
   print('wohnzimmer-heizung-flow.label Heizung Wohnzimmer')
   sys.exit()
