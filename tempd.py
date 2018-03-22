@@ -180,7 +180,7 @@ class Tempd:
 
 if __name__ == "__main__":
     sensors = {
-        "2846b25204000054": "wohnzimmer",
+        "2846b25204000054": "wohnzimmer-heizung",
         "285edd52040000d0": "wohnzimmer"
     }
     loop = asyncio.get_event_loop()
