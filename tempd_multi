@@ -4,7 +4,7 @@ import sys
 import subprocess
 
 if len(sys.argv) > 1 and sys.argv[1] == "config":
-  graph_args = "-A -X 0 -L 3"
+  graph_args = "-A -Y -X 0 -L 3"
 
   print('multigraph sensors_wohnzimmer')
   sys.stdout.buffer.write('graph_vlabel °C\n'.encode('latin-1'))
