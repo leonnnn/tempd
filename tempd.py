@@ -65,11 +65,12 @@ class Tempd:
 
     def get_output(self, sensor):
         median = statistics.median(self.raw_history[sensor])
-        δ = 4 * self.sensor_resolution
-        vals = list(filter(
-            functools.partial(math.isclose, median, abs_tol=δ),
-            self.raw_history[sensor]
-        ))
+        #δ = 4 * self.sensor_resolution
+        #vals = list(filter(
+        #    functools.partial(math.isclose, median, abs_tol=δ),
+        #    self.raw_history[sensor]
+        #))
+        vals = self.raw_history[sensor]
 
         print("considering for output:", vals, file=sys.stderr, flush=True)
 
