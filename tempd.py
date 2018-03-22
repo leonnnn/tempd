@@ -98,6 +98,10 @@ class Tempd:
 
     def handle_connect(self, client_reader, client_writer):
         print("incoming connection… ", end="", file=sys.stderr, flush=True)
+
+        output = dict()
+        output_flow = dict()
+
         for sensor in self.raw_history:
             sensor_name = self.sensor_name(sensor)
 
@@ -117,18 +121,31 @@ class Tempd:
             except (KeyError, ZeroDivisionError):
                 ratio = "NaN"
 
-            msg = "multigraph sensors\n"
+            msg = "multigraph sensors_{}\n".format(sensor_name)
             msg += "{}.value {}\n".format(sensor_name, out)
-            msg += "multigraph sensors_flow\n"
+            msg += "multigraph sensors_{}_flow\n".format(sensor_name)
             msg += "{}-flow.value {}\n".format(sensor_name, flow)
-            msg += "multigraph sensors_stats\n"
+            msg += "multigraph sensors_{}_stats\n".format(sensor_name)
             msg += "{}-ratio.value {}\n".format(sensor_name, ratio)
 
             print("sending {}".format(msg), file=sys.stderr, flush=True)
             client_writer.write(msg.encode("utf-8"))
 
+            output[sensor_name] = out
+            output_flow[sensor_name] = flow
+
             self.raw_history[sensor] = []
             self.reset_stats(sensor)
+
+        msg = "multigraph sensors\n"
+        for sensor_name in output:
+            msg += "{}.value {}\n".format(sensor_name, output[sensor_name])
+        msg += "multigraph sensors_flow\n".format
+        for sensor_name in output_flow:
+            msg += "{}-flow.value {}\n".format(sensor_name, output_flow[sensor_name])
+
+        print("sending {}".format(msg), file=sys.stderr, flush=True)
+        client_writer.write(msg.encode("utf-8"))
 
         client_writer.close()
         print("raw_history:", self.raw_history, file=sys.stderr, flush=True)
